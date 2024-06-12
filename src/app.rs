@@ -11,18 +11,18 @@ pub fn App() -> impl IntoView {
 
     let (conversation, set_conversation) = create_signal(Conversation::new());
 
-    // let send = create_action(move |new_message: &String| {
-    //     let user_message = Message {
-    //         text: new_message.clone(),
-    //         user: true,
-    //     };
-
-    //     set_conversation.update(move |c| c.messages.push(user_message))
-
-    //     // TODO convervse
-    // });
-
     view! {
+        let send = create_action(move |new_message: &String| {
+            let user_message = Message {
+                text: new_message.clone(),
+                user: true,
+            };
+
+            set_conversation.update(move |c| c.messages.push(user_message));
+
+            // TODO convervse
+            converse(conversation.get())
+        });
         // injects a stylesheet into the document <head>
         // id=leptos means cargo-leptos will hot-reload this stylesheet
         <Stylesheet id="leptos" href="/pkg/rust-llama.css"/>

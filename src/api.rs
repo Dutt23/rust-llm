@@ -4,6 +4,8 @@ use leptos::*;
 
 cfg_if! {
     if #[cfg(feature = "ssr")] {
+
+#[server(Converse , "/api")]
 pub async fn converse(prompt: Conversation) -> Result<String, ServerFnError> {
     use actix_web::dev::ConnectionInfo;
     use actix_web::web::Data;
@@ -53,7 +55,7 @@ pub async fn converse(prompt: Conversation) -> Result<String, ServerFnError> {
                 prompt: format!("{persona}\n{history}\n{character_name}")
                     .as_str()
                     .into(),
-                    parameters:  Some(&llm::InferenceParameters::default()),
+                    parameters: Some(&llm::InferenceParameters::default()),
                     play_back_previous_tokens: false,
                     maximum_token_count: None,
             },
@@ -62,7 +64,7 @@ pub async fn converse(prompt: Conversation) -> Result<String, ServerFnError> {
         )
         .unwrap_or_else(|e| panic!("{e}"));
 
-    Ok(String::from("value"))
+    Ok(res)
 }
 
         fn inference_callback<'a>(
@@ -73,6 +75,7 @@ pub async fn converse(prompt: Conversation) -> Result<String, ServerFnError> {
         ) -> impl FnMut(llm::InferenceResponse) -> Result<llm::InferenceFeedback, Infallible> + 'a {
             use llm::InferenceFeedback::Continue;
             use llm::InferenceFeedback::Halt;
+            use std::convert::Infallible
 
             move |resp| -> Result<llm::InferenceFeedback, Infallible> {
                 match resp {

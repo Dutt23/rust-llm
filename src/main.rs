@@ -1,3 +1,5 @@
+use cfg_if::cfg_if;
+
 #[cfg(feature = "ssr")]
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
@@ -13,11 +15,20 @@ async fn main() -> std::io::Result<()> {
     let routes = generate_route_list(App);
     println!("listening on http://{}", &addr);
 
+    #[get("/style.css")]
+    async fn css() -> impl Responder {
+        actix_files::NamedFile::open_async("./style/output.css").await
+    }
+
+    let model = web::Data::new(get_language_model());
     HttpServer::new(move || {
         let leptos_options = &conf.leptos_options;
         let site_root = &leptos_options.site_root;
 
         App::new()
+            // use an atomic smart pointer underneath
+            .app_data(model.clone())
+            .service(css)
             // serve JS/WASM/CSS from `pkg`
             .service(Files::new("/pkg", format!("{site_root}/pkg")))
             // serve other assets from the `assets` directory
@@ -45,6 +56,29 @@ async fn favicon(
     ))?)
 }
 
+cfg_if! {
+    if #[cfg(feature = "ssr")] {
+        use llm::models::Llama;
+        use actix_web::*;
+        use std::env;
+        use dotenv::dotenv;
+
+        fn get_language_model() -> Llama {
+            use std::path::PathBuf;
+
+            dotenv().ok();
+            let model_path = env::var("MODEL_PATH").expect("Model path must be set")
+
+            llm::load::<Llama>(
+                &PathBuf::from(model_path),
+                llm::TokenizerSource::Embedded,
+                llm::load_progress_callback_stdout,
+            ).unwrap_or_else(|err| {
+                panic!("Failed to load model from {model_path:?}: {}err")
+            })
+        }
+    }
+}
 #[cfg(not(any(feature = "ssr", feature = "csr")))]
 pub fn main() {
     // no client-side main function
