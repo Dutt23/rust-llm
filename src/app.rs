@@ -13,17 +13,10 @@ pub fn App() -> impl IntoView {
         <Stylesheet id="leptos" href="/pkg/rust-llama.css"/>
 
         // sets the document title
-        <Title text="Welcome to Leptos"/>
-
-        // content for this welcome page
-        <Router>
-            <main>
-                <Routes>
-                    <Route path="" view=HomePage/>
-                    <Route path="/*any" view=NotFound/>
-                </Routes>
-            </main>
-        </Router>
+        <Title text="Welcome to Rusty llama"/>
+        <ChatArea />
+        <TypeArea />
+        // content for this welcome pag
     }
 }
 
