@@ -16,11 +16,11 @@ const CHAT_AREA_DARK_MODE_COLORS: &str = "border-zinc-700 bg-zinc-900";
 
 #[component]
 pub fn ChatArea(conversation: ReadSignal<Conversation>) -> impl IntoView {
-    let cht_div_ref = create_node_ref::<Div>();
+    let chat_div_ref = create_node_ref::<Div>();
 
     create_effect(move |_| {
         conversation.get();
-        if let Some(div) = cht_div_ref.get() {
+        if let Some(div) = chat_div_ref.get() {
             div.set_scroll_top(div.scroll_height());
         }
     });
