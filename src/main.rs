@@ -67,14 +67,15 @@ cfg_if! {
             use std::path::PathBuf;
 
             dotenv().ok();
-            let model_path = env::var("MODEL_PATH").expect("Model path must be set")
+            let model_path = env::var("MODEL_PATH").expect("Model path must be set");
 
             llm::load::<Llama>(
-                &PathBuf::from(model_path),
+                &PathBuf::from(model_path.clone()),
                 llm::TokenizerSource::Embedded,
+                Default::default(),
                 llm::load_progress_callback_stdout,
             ).unwrap_or_else(|err| {
-                panic!("Failed to load model from {model_path:?}: {}err")
+                panic!("Failed to load model from {model_path:?}: {}", err)
             })
         }
     }
