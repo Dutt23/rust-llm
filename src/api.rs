@@ -1,8 +1,9 @@
 use crate::models::conversation::Conversation;
+use cfg_if::cfg_if;
 use leptos::*;
 
-// #[server(Converse "/api")]
-#[cfg(feature = "ssr")]
+cfg_if! {
+    if #[cfg(feature = "ssr")] {
 pub async fn converse(prompt: Conversation) -> Result<String, ServerFnError> {
     use actix_web::dev::ConnectionInfo;
     use actix_web::web::Data;
@@ -14,6 +15,9 @@ pub async fn converse(prompt: Conversation) -> Result<String, ServerFnError> {
             .unwrap();
 
     use llm::KnownModel;
+    use tokio::runtime::Runtime;
+
+    let mut runtime = Runtime::new().expect("issue creating tokio runtime");
     let character_name = "### Assistant";
     let user_name = "### Human";
     let persona = "A chat between a human and an assistant";
@@ -42,18 +46,68 @@ pub async fn converse(prompt: Conversation) -> Result<String, ServerFnError> {
     let mut session = model.start_session(Default::default());
 
     session
-        .infer(
+        .feed_prompt(
             model.as_ref(),
             &mut rng,
             &llm::InferenceRequest {
                 prompt: format!("{persona}\n{history}\n{character_name}")
                     .as_str()
                     .into(),
+                    parameters:  Some(&llm::InferenceParameters::default()),
+                    play_back_previous_tokens: false,
+                    maximum_token_count: None,
             },
             &mut Default::default(),
-            inference_callback(String::from(user_name), &mut buf, &mut res),
+            inference_callback(String::from(user_name), &mut buf, &mut res, &mut runtime),
         )
         .unwrap_or_else(|e| panic!("{e}"));
 
     Ok(String::from("value"))
+}
+
+        fn inference_callback<'a>(
+            stop_sequence: String,
+            buf: &'a mut String,
+            tx: tokio::sync::mpsc::Sender<String>,
+            runtime: &'a mut tokio::runtime::Runtime,
+        ) -> impl FnMut(llm::InferenceResponse) -> Result<llm::InferenceFeedback, Infallible> + 'a {
+            use llm::InferenceFeedback::Continue;
+            use llm::InferenceFeedback::Halt;
+
+            move |resp| -> Result<llm::InferenceFeedback, Infallible> {
+                match resp {
+                    llm::InferenceResponse::InferredToken(t) => {
+                        let mut reverse_buf = buf.clone();
+                        reverse_buf.push_str(t.as_str());
+                        if stop_sequence.as_str().eq(reverse_buf.as_str()) {
+                            buf.clear();
+                            return Ok(Halt);
+                        } else if stop_sequence.as_str().starts_with(reverse_buf.as_str()) {
+                            buf.push_str(t.as_str());
+                            return Ok(Continue);
+                        }
+
+                        // Clone the string we're going to send
+                        let text_to_send = if buf.is_empty() {
+                            t.clone()
+                        } else {
+                            reverse_buf
+                        };
+
+                        let tx_cloned = tx.clone();
+                        runtime.block_on(async move {
+                            tx_cloned
+                                .send(text_to_send)
+                                .await
+                                .expect("issue sending on channel");
+                        });
+
+                        Ok(Continue)
+                    }
+                    llm::InferenceResponse::EotToken => Ok(Halt),
+                    _ => Ok(Continue),
+                }
+            }
+        }
+    }
 }

@@ -2120,6 +2120,7 @@ version = "0.1.0"
 dependencies = [
  "actix-files",
  "actix-web",
+ "cfg-if",
  "console_error_panic_hook",
  "http 1.1.0",
  "leptos",
