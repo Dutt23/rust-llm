@@ -2708,7 +2708,6 @@ dependencies = [
  "llm",
  "rand",
  "serde",
- "tokio",
  "wasm-bindgen",
 ]
 

@@ -2,6 +2,9 @@ use crate::models::conversation::Conversation;
 use cfg_if::cfg_if;
 use leptos::*;
 
+static CHARACTER_NAME: &str = "### Assistant";
+static USER_NAME: &str = "### Human";
+
 #[server(Converse, "/api")]
 pub async fn converse(prompt: Conversation) -> Result<String, ServerFnError> {
     use actix_web::dev::ConnectionInfo;
@@ -15,7 +18,7 @@ pub async fn converse(prompt: Conversation) -> Result<String, ServerFnError> {
     //         .unwrap();
 
     use llm::KnownModel;
-    use tokio::runtime::Builder;
+    // use tokio::runtime::Builder;
 
     // let runtime = Builder::new_multi_thread()
     //     .worker_threads(4)
@@ -36,9 +39,9 @@ pub async fn converse(prompt: Conversation) -> Result<String, ServerFnError> {
     for message in prompt.messages.into_iter() {
         let msg = message.text;
         let curr_line = if message.user {
-            format!("{character_name}: {msg}\n")
-        } else {
             format!("{user_name}: {msg}\n")
+        } else {
+            format!("{character_name}: {msg}\n")
         };
 
         history.push_str(&curr_line);
@@ -49,15 +52,25 @@ pub async fn converse(prompt: Conversation) -> Result<String, ServerFnError> {
     let mut buf = String::new();
 
     let mut session = model.start_session(Default::default());
-
+    dbg!(format!(
+        "\
+{persona}
+{history}
+{character_name}:"
+    ));
     session
         .infer(
             &model,
             &mut rng,
             &llm::InferenceRequest {
-                prompt: format!("{persona}\n{history}\n{character_name}")
-                    .as_str()
-                    .into(),
+                prompt: format!(
+                    "\
+{persona}
+{history}
+{character_name}:"
+                )
+                .as_str()
+                .into(),
                 parameters: &llm::InferenceParameters::default(),
                 play_back_previous_tokens: false,
                 maximum_token_count: None,
@@ -66,6 +79,11 @@ pub async fn converse(prompt: Conversation) -> Result<String, ServerFnError> {
             inference_callback(String::from(user_name), &mut buf, &mut res),
         )
         .unwrap_or_else(|e| panic!("{e}"));
+
+    // match result {
+    //     Ok(fine) => println!("\n\nInference stats:\n{fine}"),
+    //     Err(err) => println!("\n{err}"),
+    // }
 
     Ok(res)
 }
@@ -83,6 +101,7 @@ cfg_if! {
 
             move |resp| match resp {
                 llm::InferenceResponse::InferredToken(t) => {
+                    print!("inside here");
                     let mut reverse_buf = buf.clone();
                     reverse_buf.push_str(t.as_str());
                     if stop_sequence.as_str().eq(reverse_buf.as_str()) {
@@ -101,8 +120,14 @@ cfg_if! {
 
                     Ok(Continue)
                 }
-                llm::InferenceResponse::EotToken => Ok(Halt),
-                _ => Ok(Continue),
+                llm::InferenceResponse::EotToken => {
+                    print!("inside here 2");
+                    Ok(Halt)
+                },
+                _ => {
+                    print!("inside here 3");
+                    Ok(Continue)
+                },
             }
         }
 

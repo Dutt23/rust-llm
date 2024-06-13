@@ -1,0 +1,6 @@
+{
+  "scripts": {
+    "tw:watch": "tailwindcss -i app.postcss -o style/app.css --watch",
+    "tw:build": "tailwindcss -i app.postcss -o style/app.css"
+  }
+}
