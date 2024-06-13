@@ -4,7 +4,7 @@ use leptos::{html::Input, *};
 pub fn TypeArea(send: Action<String, Result<String, ServerFnError>>) -> impl IntoView {
     let input_ref = create_node_ref::<Input>();
     view! {
-      <div class="h-24 w-full fixed bottom-0 flex justify-center items-center p-5 bg-white border-t border-gray-300">
+      <div class="w-2/3 p-4 border rounded-full input-field">
       <form on:submit=move |ev| {
         ev.prevent_default();
         let input = input_ref.get().expect("input to exist");

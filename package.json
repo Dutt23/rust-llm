@@ -1,6 +1,9 @@
 {
   "scripts": {
-    "tw:watch": "tailwindcss -i app.postcss -o style/app.css --watch",
-    "tw:build": "tailwindcss -i app.postcss -o style/app.css"
+    "tw:watch": "tailwindcss -i input.postcss -o style/output.css --watch",
+    "tw:build": "tailwindcss -i input.postcss -o style/output.css"
+  },
+  "dependencies": {
+    "tailwindcss": "^3.4.4"
   }
 }
