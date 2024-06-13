@@ -11,31 +11,24 @@ pub async fn converse(prompt: Conversation) -> Result<String, ServerFnError> {
     use actix_web::web::Data;
     use leptos_actix::extract;
     use llm::models::Llama;
-    let model: Llama = get_language_model();
-    // let model =
-    //     extract(|data: Data<Llama>, _connection: ConnectionInfo| async { data.into_inner() })
-    //         .await
-    //         .unwrap();
-
     use llm::KnownModel;
-    // use tokio::runtime::Builder;
 
-    // let runtime = Builder::new_multi_thread()
-    //     .worker_threads(4)
-    //     .thread_name("my-custom-name")
-    //     .thread_stack_size(3 * 1024 * 1024)
-    //     .build()
-    //     .unwrap();
-    let character_name = "### Assistant";
-    let user_name = "### Human";
-    let persona = "A chat between a human and an assistant";
+    let character_name = "### Manager";
+    let user_name = "### Developer";
+    let persona = "A chat between a developer and an manager. The manager is trained in Lean Six Sigma and Agile Methodology, you need to reply like that manager and not give direct answers";
     let mut history = format!(
-        "{character_name}: Hello may I help you today? \n\
-      {user_name}: What is the capital of France \n\
-      {character_name}: Paris is the capital of France. \n
+        "{character_name}: How long will this feature take? \n\
+      {user_name}: Two weeks \n\
+      {character_name}: Tell me in t-shirt sizing. \n
       "
     );
-
+    let model: Data<Llama> = extract().await.unwrap();
+    // let model = extract(
+    //     Scope::new(),
+    //     |data: Data<Llama>, _connection: ConnectionInfo| async { data.into_inner() },
+    // )
+    // .await
+    // .unwrap();
     for message in prompt.messages.into_iter() {
         let msg = message.text;
         let curr_line = if message.user {
@@ -60,7 +53,7 @@ pub async fn converse(prompt: Conversation) -> Result<String, ServerFnError> {
     ));
     session
         .infer(
-            &model,
+            model.as_ref(),
             &mut rng,
             &llm::InferenceRequest {
                 prompt: format!(
